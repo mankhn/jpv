@@ -1,226 +1,227 @@
-# JPV - JSON Pattern Validation
+# jpv
 
-JPV is an powerful library that makes JSON validation simple and painless, especially when it comes to complex and nested structures. Whether your JSON is just a couple of key-value pairs or a deeply nested, intricate object, JPV provides an elegant and efficient solution for validation.
-
-## Usage
-
-How to use JPV to validate JSON objects:
+JSON pattern validation for JavaScript and TypeScript.
 
 ```javascript
-const jpv = require("jpv");
-
-const object = {
-  status: "OK",
-  meta: {
-    age: 30,
-  },
-};
+import { validate } from 'jpv';
 
 const pattern = {
-  status: /ok/i,
-  meta: {
-    age: (x) => x > 18,
-  },
+  name: /^[A-Z][a-z]+$/,   // regex
+  age: (n) => n >= 18,     // function
+  role: 'admin',           // exact value
 };
 
-jpv.validate(object, pattern); // true
+validate({ name: 'John', age: 30, role: 'admin' }, pattern); // true
+validate({ name: 'john', age: 12, role: 'guest' }, pattern); // false
 ```
 
-It provides a variety of validation patterns that are both robust and flexible, catering to the exact needs of your data structures. From precise values, regular expressions, and functions to nullable and strict types, JPV has got you covered. Logical operators like and, or, not add another layer of flexibility to meet your precise validation needs.
-
-> **Warning:** JPV 3.0.0 is a significant update from the previous versions of JPV. If you encounter issues with the current version, consider using JPV 2.2.2.
-
 ## Installation
-
-To install the library, use npm:
 
 ```bash
 npm install jpv
 ```
 
-Import the library as follows:
-
 ```javascript
-const { validate, and, or, not, forEach, strict, nullable } = require("jpv");
+import { validate } from 'jpv';       // ES modules
+const { validate } = require('jpv');  // CommonJS
 ```
 
-Or, if you prefer ES6 imports:
+## Patterns
+
+### Exact values
 
 ```javascript
-import { validate, and, or, not, forEach, strict, nullable } from "jpv";
+validate({ status: 'OK', code: 200 }, { status: 'OK', code: 200 }); // true
 ```
 
-## Exact values
-
-JPV allows you to specify exact values in your patterns. This means that you can define a specific value that a property in your JSON object must match exactly for the validation to pass.
-
-Exact values can be any valid JavaScript data type, including strings, numbers, booleans, null, and even arrays and objects. This makes exact value validation a very powerful feature when you know exactly what value a property should have.
+### Regular expressions
 
 ```javascript
-const object = {
-  name: "John",
-  status: true,
-  version: 30,
-  city: "New York",
-};
+validate({ phone: '5551234567' }, { phone: /^\d{10}$/ }); // true
+```
+
+### Functions
+
+```javascript
+validate({ age: 30 }, { age: (n) => n >= 18 }); // true
+```
+
+### Types
+
+```javascript
+import { type } from 'jpv';
 
 const pattern = {
-  name: "John",
-  status: true,
-  version: 30,
+  id: type('integer'),
+  name: type('string'),
+  note: type('string', 'null'),  // string or null
 };
 ```
 
-## Regex
+Available types: `string` `number` `integer` `finite` `boolean` `bigint` `symbol` `function` `undefined` `null` `object` `array` `date` `regexp` `any`.
 
-Regular expression in JPV is one of the general-purpose patterns that can be used to validate a wide variety of data types.
+### Nested objects
 
 ```javascript
-const object = {
-  phone: "1234567890",
-  name: "John",
-};
-
 const pattern = {
-  phone: /^\d{10}$/,
-  name: new RegExp(/^[A-Za-z]+$/),
-};
-```
-
-## Arrays
-
-Like a object, arrays are validated by specifying a pattern for each element in the array. The pattern can be any valid JPV pattern, including exact values, regular expressions, functions, and logical operators.
-
-```javascript
-const object = ['Lea', '+123456789']
-
-const pattern = [/\w/,  /\+\d/],
-```
-
-## Array forEach
-
-To validate each element in an array, you can use the forEach pattern that iterates over each element in the array and validates it against the specified pattern.
-
-```javascript
-const object = ["hello", "world", "example"];
-
-const pattern = forEach(/^[a-z]+$/);
-```
-
-Another example of using forEach to validate an array of objects:
-
-```javascript
-const object = {
-  status: "OK",
-  data: [
-    {
-      name: "John",
-      age: 21,
+  user: {
+    name: type('string'),
+    address: {
+      city: type('string'),
     },
-    {
-      name: "Mark",
-      age: 25,
-    },
-  ],
+  },
 };
+```
+
+### Arrays
+
+```javascript
+import { forEach } from 'jpv';
+
+validate(['a', 'b'], forEach(type('string')));             // every item
+validate(['a', 'b'], forEach(type('string'), { max: 5 })); // with length limits
+validate(['John', 30], [type('string'), type('number')]);  // by position
+```
+
+### Optional values
+
+```javascript
+import { nullable } from 'jpv';
+
+const pattern = { email: nullable(/@/) };
+
+validate({}, pattern);                         // true
+validate({ email: null }, pattern);            // true
+validate({ email: 'john@mail.com' }, pattern); // true
+```
+
+### Strict
+
+```javascript
+import { strict } from 'jpv';
+
+const pattern = strict({ x: type('number'), y: type('number') });
+
+validate({ x: 1, y: 2 }, pattern);       // true
+validate({ x: 1, y: 2, z: 3 }, pattern); // false, unexpected key "z"
+```
+
+### Operators
+
+```javascript
+import { and, or, not } from 'jpv';
 
 const pattern = {
-  status: /ok/i,
-  data: forEach({
-    name: /^[\w\s]+$/,
-    age: x => x > 18,
-  }),
+  role: or('admin', 'editor', 'viewer'),
+  url: and(type('string'), /^https:/),
+  username: not('root'),
 };
 ```
 
-## Functions
-
-JPV allows for function-based validations, offering a high degree of flexibility. This lets you define custom validation logic that goes beyond exact matches and regular expressions. Function-based validations can incorporate complex conditions and external data checks.
-
-Here's an example of function-based validation:
+### Dictionaries
 
 ```javascript
-const pattern = {
-  age: (x) => typeof x === "number" && x > 18,
+import { record } from 'jpv';
+
+validate({ alice: 10, bob: 7 }, record(/^[a-z]+$/, type('number'))); // true
+```
+
+### Recursion
+
+```javascript
+import { lazy } from 'jpv';
+
+const category = {
+  name: type('string'),
+  children: forEach(lazy(() => category)),
 };
 ```
 
-## Nullable
-
-In JSON validation, you may come across properties that can be either **`null`** or **`undefined`**, or follow a certain pattern. In such cases, the nullable pattern in JPV comes in handy.
-
-The nullable pattern allows the property value to be either **`null`** or **`undefined`**, or to match the provided condition.
-
-Here's an example:
+## Errors
 
 ```javascript
-const pattern = {
-  address: nullable({
-    street: /^[\w\s]+$/,
-    city: /^[\w\s]+$/,
-    country: /^[\w\s]+$/,
-  }),
-};
+import { explain } from 'jpv';
+
+explain({ id: 'x', tags: ['a', 1] }, { id: type('integer'), tags: forEach(type('string')) });
+// {
+//   valid: false,
+//   errors: [
+//     { path: 'id',      message: 'expected integer, received string', ... },
+//     { path: 'tags[1]', message: 'expected string, received number',  ... }
+//   ]
+// }
 ```
 
-## Strict
-
-In strict mode, every key in the JSON object must have a corresponding key in the pattern. If the object has extra keys that are not present in the pattern, validation will fail. Similarly, if the object is missing keys that are present in the pattern, validation will fail. This ensures the object structure precisely mirrors the pattern structure. Samilar requirements are also applied to arrays.
-
 ```javascript
-const pattern = {
-  address: strict({
-    street: /^[\w\s]+$/,
-    city: /^[\w\s]+$/,
-    country: /^[\w\s]+$/,
-  }),
-};
+import { assert } from 'jpv';
+
+assert({ port: '80' }, { port: type('integer') });
+// throws ValidationError: port: expected integer, received string
 ```
 
-## Operators (and, or, not)
-
-JPV provides three logical operators: **and**, **or**, and **not**. These operators allow you to create complex validation conditions by combining different patterns. Each operator can be used with any type of pattern, offering great flexibility in constructing your validation rules.
-
 ```javascript
-  and(patternA, patternB, ...)
-  or(patternA, patternB, ...)
-  not(pattern)
-```
-
-Pay attention to arguments, each argument itself can be a pattern or a function that returns a pattern. This allows you to create complex validation rules that can handle a wide variety of scenarios.
-
-```javascript
-  and(patternA, or( patternB1, patternB2 ), not(patternC),...)
-```
-
-In summary, JPV's logical operators allow for a powerful and flexible way to create complex validation rules that can handle a wide variety of scenarios.
-
-```javascript
-const pattern = {
-  url: and(/^https:/, not(/^http:/)),
-  employeeId: and(not(/^admin$/), (x) => typeof x === "string"),
-  emailOrPhone: or(/^\w+@\w+\.\w+$/, /^\d{10}$/),
-};
-```
-
-## Type validation
-
-To facilitate type validation, we can create a helper function **`is`**. This function accepts a type as a parameter and returns a new function. This returned function, when given a value, compares the type of the value with the expected type, returning a boolean result.
-
-```javascript
-const is = (type) => (value) => typeof value === type;
+import { message } from 'jpv';
 
 const pattern = {
-  name: is("string"),
+  password: message(/^.{12,}$/, 'Password must be at least 12 characters'),
 };
 ```
 
-# Changlog
+## Compile
 
-This version _(3.x)_ of jpv introduces a number of changes from the previous versions (2.x). Here's a summary of the changes:
+Prepare a pattern once and reuse it.
 
-- Cleaner and more intuitive API.
-- New logical operators and, or, not.
-- New strict and nullable pattern types.
-- Nested object validation.
-- forEach pattern for validating arrays.
+```javascript
+import { compile } from 'jpv';
+
+const isUser = compile({ name: type('string'), age: type('integer') });
+
+isUser(value);          // true / false
+isUser.explain(value);  // { valid, errors }
+isUser.assert(value);   // value, or throws
+```
+
+## TypeScript
+
+Types are inferred from patterns.
+
+```typescript
+import { compile, type, or, Infer } from 'jpv';
+
+const isUser = compile({ name: type('string'), role: or('admin', 'user') });
+
+type User = Infer<typeof isUser>; // { name: string; role: 'admin' | 'user' }
+
+if (isUser(input)) {
+  input.role; // 'admin' | 'user'
+}
+```
+
+## API
+
+| Function | Description |
+| --- | --- |
+| `validate(value, pattern)` | Returns `true` or `false` |
+| `explain(value, pattern)` | Returns `{ valid, errors }` |
+| `assert(value, pattern)` | Returns the value or throws `ValidationError` |
+| `compile(pattern)` | Returns a reusable validator |
+| `type(...names)` | Value is one of the given types |
+| `nullable(pattern)` | Value is `null`, `undefined` or matches |
+| `strict(pattern)` | No keys or items beyond the pattern |
+| `forEach(pattern, { min, max })` | Every array item matches |
+| `record(key, value)` | Every object key and value match |
+| `and(...patterns)` | All patterns match |
+| `or(...patterns)` | Any pattern matches |
+| `not(pattern)` | Pattern does not match |
+| `lazy(() => pattern)` | Deferred pattern, for recursion |
+| `message(pattern, text)` | Custom error message |
+
+## Compatibility
+
+Node.js 14+, modern browsers, TypeScript 4.1+. No dependencies.
+
+Upgrading from 3.x? See the [changelog](./CHANGELOG.md).
+
+## License
+
+MIT

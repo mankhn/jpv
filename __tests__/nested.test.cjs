@@ -1,5 +1,6 @@
+const { test, describe, it, expect } = require('./helpers.cjs');
 // Import your library
-const jpv = require('../dist/index.js');
+const jpv = require('../dist/index.cjs');
 
 // Positive nested case
 test('Nested: positive case', () => {

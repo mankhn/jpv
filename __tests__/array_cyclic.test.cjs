@@ -1,17 +1,18 @@
+const { test, describe, it, expect } = require('./helpers.cjs');
 // Import the validate function from your library
-const {validate, strict, nullable} = require('../dist/index.js');
+const {validate, strict, nullable} = require('../dist/index.cjs');
 
-describe('Cyclical Array Validation', () => {
+describe('Positional Array Validation', () => {
   // Define the typeOf function for these tests
   const typeOf = type => value => typeof value === type;
 
-  it('should validate arrays with cyclic pattern', () => {
+  it('validates leading items by position', () => {
     const pattern = [typeOf('number'), typeOf('string')];
     const value = [1, 'a', 2, 'b'];
     expect(validate(value, pattern)).toBe(true);
   });
 
-  it('should return false for invalid arrays with cyclic pattern', () => {
+  it('ignores extra items beyond the pattern', () => {
     const pattern = [typeOf('number'), typeOf('string')];
     const value = [1, 'a', 2, 'b', 'c'];
     expect(validate(value, pattern)).toBe(true);

@@ -1,5 +1,6 @@
+const { test, describe, it, expect } = require('./helpers.cjs');
 
-const {strict, and, forEach, or, not, nullable, validate} = require('../dist/index.js');
+const {strict, and, forEach, or, not, nullable, validate} = require('../dist/index.cjs');
 
 describe('Validation Error Tests', () => {
 

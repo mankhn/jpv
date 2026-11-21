@@ -1,4 +1,5 @@
-import { forEach, validate } from '../dist/index.js';
+const { test, describe, it, expect } = require('./helpers.cjs');
+const { forEach, validate } = require('../dist/index.cjs');
 
 describe('forEach validation', () => {
   test('all elements are strings', () => {

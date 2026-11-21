@@ -1,5 +1,6 @@
+const { test, describe, it, expect } = require('./helpers.cjs');
 
-const {validate} = require('../dist/index.js');
+const {validate} = require('../dist/index.cjs');
 
 describe('JPV Corner Cases', () => {
   const pattern = {
@@ -60,22 +61,27 @@ describe('JPV Corner Cases', () => {
     expect(validate(object, funcPattern)).toBe(true);
   });
 
+  // v4: null-prototype objects (Object.create(null), some query-string parsers)
+  // are plain data and are validated normally.
   test('Manipulation of prototype to null', () => {
     const object = {
       name: 'John',
       age: 30,
     };
     object.__proto__ = null;
-    expect(validate(object, pattern)).toBe(false);
+    expect(validate(object, pattern)).toBe(true);
+    expect(validate(Object.assign(Object.create(null), { name: 'Jane', age: 30 }), pattern)).toBe(false);
   });
 
+  // v4: an own "constructor" key is just data (e.g. JSON.parse('{"constructor": 1}')).
   test('Manipulation of constructor to null', () => {
     const object = {
       name: 'John',
       age: 30,
     };
     object.constructor = null;
-    expect(validate(object, pattern)).toBe(false);
+    expect(validate(object, pattern)).toBe(true);
+    expect(validate(JSON.parse('{"constructor":1,"name":"John","age":30}'), pattern)).toBe(true);
   });
 
   test('Manipulation of toString to null', () => {
