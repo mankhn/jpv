@@ -1,4 +1,5 @@
-const { validate, nullable, strict } = require("../dist/index.js");
+const { test, describe, it, expect } = require('./helpers.cjs');
+const { validate, nullable, strict } = require('../dist/index.cjs');
 
 // Using Jest as test framework
 test("Nullable: positive case with null value", () => {

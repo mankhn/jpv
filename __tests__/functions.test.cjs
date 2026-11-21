@@ -1,4 +1,5 @@
-const jpv = require('../dist/index.js');
+const { test, describe, it, expect } = require('./helpers.cjs');
+const jpv = require('../dist/index.cjs');
 
 test('matches function', () => {
   expect(jpv.validate({ age: 20 }, { age: x => typeof x === 'number' && x > 18 })).toBe(true);

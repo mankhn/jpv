@@ -1,4 +1,5 @@
-const jpv = require('../dist/index.js');
+const { test, describe, it, expect } = require('./helpers.cjs');
+const jpv = require('../dist/index.cjs');
 
 test('matches regex', () => {
   expect(jpv.validate({ name: 'John' }, { name: /^John$/ })).toBe(true);

@@ -1,4 +1,5 @@
-const {validate} = require('../dist/index.js');
+const { test, describe, it, expect } = require('./helpers.cjs');
+const {validate} = require('../dist/index.cjs');
 
 describe('JPV Array Impersonation Cases', () => {
   const pattern = [

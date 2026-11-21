@@ -1,5 +1,6 @@
+const { test, describe, it, expect } = require('./helpers.cjs');
 
-const {validate, strict} = require('../dist/index.js');
+const {validate, strict} = require('../dist/index.cjs');
 
 describe('JPV Strict Mode', () => {
   const pattern = {

@@ -1,0 +1,68 @@
+name: Test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:types
+
+  # The built package must keep working on old Node versions (engines: >=14).
+  legacy-node:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [14, 16]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node --version && node scripts/smoke.cjs
+
+  # Type declarations must work on old TypeScript versions (>= 4.1).
+  legacy-typescript:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        typescript: ['4.1', '4.7', '4.9', '5.0', 'latest']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm pack --pack-destination "$RUNNER_TEMP"
+      # The consumer project lives outside the repo so the repo's tsconfig.json is not picked up.
+      - name: Type-check a consumer project
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir consumer && cd consumer && npm init -y > /dev/null
+          npm i "$RUNNER_TEMP"/jpv-*.tgz typescript@${{ matrix.typescript }}
+          cat > index.ts <<'TS'
+          import { compile, type, nullable, forEach } from 'jpv';
+          const v = compile({ name: type('string'), email: nullable(/@/), tags: forEach(type('number')) });
+          const x: unknown = {};
+          if (v(x)) { const s: string = x.name; const n: number[] = x.tags; console.log(s, n); }
+          TS
+          if [ "${{ matrix.typescript }}" = "latest" ]; then RES=nodenext; MOD=nodenext; else RES=node; MOD=commonjs; fi
+          cat > tsconfig.json <<JSON
+          { "compilerOptions": { "strict": true, "noEmit": true, "module": "$MOD", "moduleResolution": "$RES", "target": "es2018", "types": [] }, "files": ["index.ts"] }
+          JSON
+          npx tsc -p .

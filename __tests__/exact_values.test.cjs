@@ -1,4 +1,5 @@
-const jpv = require('../dist/index.js');
+const { test, describe, it, expect } = require('./helpers.cjs');
+const jpv = require('../dist/index.cjs');
 
 test('matches exact array', () => {
   expect(jpv.validate({ numbers: [1, 2, 3] }, { numbers: [1, 2, 3] })).toBe(true);

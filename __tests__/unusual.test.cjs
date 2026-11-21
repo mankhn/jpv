@@ -1,7 +1,8 @@
+const { test, describe, it, expect } = require('./helpers.cjs');
 
 
 
-const {strict, validate} = require('../dist/index.js');
+const {strict, validate} = require('../dist/index.cjs');
 
 describe('Validation Pattern Hacking Tests', () => {
 
